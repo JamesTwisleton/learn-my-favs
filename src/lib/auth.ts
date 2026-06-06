@@ -103,6 +103,26 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
+  cookies: {
+    state: {
+      name: "next-auth.state",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false,
+      },
+    },
+    pkceCodeVerifier: {
+      name: "next-auth.pkce.code_verifier",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false,
+      },
+    },
+  },
   pages: {
     signIn: "/",
   },
