@@ -1,5 +1,5 @@
-import { searchSongsterr, mapSongsterrDifficulty } from "./songsterr";
 import { prisma } from "./prisma";
+import { getUltimateGuitarUrl, getSongsterrUrl } from "./tabs";
 
 export interface SongDifficultyResult {
   spotifyTrackId: string;
@@ -8,14 +8,15 @@ export interface SongDifficultyResult {
   instrumentId: string;
   instrumentName: string;
   difficulty: number;
-  tabUrl: string | null;
-  tabProvider: string | null;
+  ultimateGuitarUrl: string;
+  songsterrUrl: string;
   source: string;
 }
 
 /**
  * Get or compute difficulty for a track + instrument pair.
- * Checks cache first, falls back to Songsterr API, then heuristic.
+ * Checks cache first, falls back to heuristic.
+ * Always provides Ultimate Guitar and Songsterr search URLs.
  */
 export async function getOrComputeDifficulty(
   spotifyTrackId: string,
@@ -24,6 +25,9 @@ export async function getOrComputeDifficulty(
   instrumentId: string,
   instrumentName: string
 ): Promise<SongDifficultyResult> {
+  const ultimateGuitarUrl = getUltimateGuitarUrl(artistName, trackName, instrumentName);
+  const songsterrUrl = getSongsterrUrl(artistName, trackName);
+
   // Check cache
   const cached = await prisma.songDifficulty.findUnique({
     where: {
@@ -39,49 +43,13 @@ export async function getOrComputeDifficulty(
       instrumentId,
       instrumentName,
       difficulty: cached.difficulty,
-      tabUrl: cached.tabUrl,
-      tabProvider: cached.tabProvider,
+      ultimateGuitarUrl,
+      songsterrUrl,
       source: cached.source,
     };
   }
 
-  // Try Songsterr
-  try {
-    const match = await searchSongsterr(artistName, trackName, instrumentName);
-
-    if (match) {
-      const difficulty = mapSongsterrDifficulty(match.instrumentDifficulty);
-
-      await prisma.songDifficulty.create({
-        data: {
-          spotifyTrackId,
-          trackName,
-          artistName,
-          instrumentId,
-          difficulty,
-          tabUrl: match.tabUrl,
-          tabProvider: "songsterr",
-          source: "songsterr_api",
-        },
-      });
-
-      return {
-        spotifyTrackId,
-        trackName,
-        artistName,
-        instrumentId,
-        instrumentName,
-        difficulty,
-        tabUrl: match.tabUrl,
-        tabProvider: "songsterr",
-        source: "songsterr_api",
-      };
-    }
-  } catch {
-    // Songsterr API failed, fall through to heuristic
-  }
-
-  // Heuristic fallback
+  // Heuristic difficulty based on instrument
   const difficulty = heuristicDifficulty(instrumentName);
 
   await prisma.songDifficulty.create({
@@ -91,8 +59,8 @@ export async function getOrComputeDifficulty(
       artistName,
       instrumentId,
       difficulty,
-      tabUrl: null,
-      tabProvider: null,
+      tabUrl: ultimateGuitarUrl,
+      tabProvider: "ultimate_guitar",
       source: "heuristic",
     },
   });
@@ -104,19 +72,16 @@ export async function getOrComputeDifficulty(
     instrumentId,
     instrumentName,
     difficulty,
-    tabUrl: null,
-    tabProvider: null,
+    ultimateGuitarUrl,
+    songsterrUrl,
     source: "heuristic",
   };
 }
 
 /**
  * Simple heuristic when no external data is available.
- * Returns a middle-ground difficulty since we can't determine much
- * without audio features or tab data.
  */
 function heuristicDifficulty(instrumentName: string): number {
-  // Default to medium difficulty - without tab data we can't know
   switch (instrumentName) {
     case "drums":
       return 5;

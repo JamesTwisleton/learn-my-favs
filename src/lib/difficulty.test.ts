@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getDifficultyLabel } from "./constants";
-import { mapSongsterrDifficulty } from "./songsterr";
+import { getUltimateGuitarUrl, getSongsterrUrl } from "./tabs";
 
 describe("getDifficultyLabel", () => {
   it("returns Easy for scores 1-3", () => {
@@ -22,22 +22,36 @@ describe("getDifficultyLabel", () => {
   });
 });
 
-describe("mapSongsterrDifficulty", () => {
-  it("maps Songsterr difficulty strings to numeric scale", () => {
-    expect(mapSongsterrDifficulty("novice")).toBe(2);
-    expect(mapSongsterrDifficulty("beginner")).toBe(3);
-    expect(mapSongsterrDifficulty("intermediate")).toBe(5);
-    expect(mapSongsterrDifficulty("advanced")).toBe(7);
-    expect(mapSongsterrDifficulty("expert")).toBe(9);
+describe("getUltimateGuitarUrl", () => {
+  it("generates correct search URL for guitar", () => {
+    const url = getUltimateGuitarUrl("Radiohead", "Creep", "guitar");
+    expect(url).toContain("ultimate-guitar.com/search.php");
+    expect(url).toContain("Radiohead");
+    expect(url).toContain("Creep");
+    expect(url).toContain("type=chords");
   });
 
-  it("returns 5 for null or unknown difficulties", () => {
-    expect(mapSongsterrDifficulty(null)).toBe(5);
-    expect(mapSongsterrDifficulty("unknown")).toBe(5);
+  it("generates correct tab type for bass", () => {
+    const url = getUltimateGuitarUrl("Radiohead", "Creep", "bass");
+    expect(url).toContain("type=bass-tabs");
   });
 
-  it("is case-insensitive", () => {
-    expect(mapSongsterrDifficulty("NOVICE")).toBe(2);
-    expect(mapSongsterrDifficulty("Beginner")).toBe(3);
+  it("generates correct tab type for ukulele", () => {
+    const url = getUltimateGuitarUrl("Radiohead", "Creep", "ukulele");
+    expect(url).toContain("type=ukulele-chords");
+  });
+
+  it("generates correct tab type for drums", () => {
+    const url = getUltimateGuitarUrl("Radiohead", "Creep", "drums");
+    expect(url).toContain("type=drum-tabs");
+  });
+});
+
+describe("getSongsterrUrl", () => {
+  it("generates correct search URL", () => {
+    const url = getSongsterrUrl("Radiohead", "Creep");
+    expect(url).toContain("songsterr.com");
+    expect(url).toContain("Radiohead");
+    expect(url).toContain("Creep");
   });
 });

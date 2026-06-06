@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getTopTracks, type SpotifyTrack } from "@/lib/spotify";
 import { getOrComputeDifficulty } from "@/lib/difficulty";
+import { getUltimateGuitarUrl, getSongsterrUrl } from "@/lib/tabs";
 import { CACHE_TTL, type TimeRange } from "@/lib/constants";
 
 export async function GET(request: NextRequest) {
@@ -20,12 +21,15 @@ export async function GET(request: NextRequest) {
     where: { spotifyId: session.user.id },
     include: {
       instruments: { include: { instrument: true } },
+      favourites: { select: { spotifyTrackId: true } },
     },
   });
 
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
+
+  const favouriteTrackIds = new Set(user.favourites.map((f) => f.spotifyTrackId));
 
   // Check cache
   let tracks: SpotifyTrack[];
@@ -41,10 +45,8 @@ export async function GET(request: NextRequest) {
   if (isFresh && cached) {
     tracks = JSON.parse(cached.tracksJson);
   } else {
-    // Fetch fresh from Spotify
     tracks = await getTopTracks(session.accessToken, timeRange);
 
-    // Update cache
     await prisma.topTracksCache.upsert({
       where: {
         userId_timeRange: { userId: user.id, timeRange },
@@ -67,7 +69,6 @@ export async function GET(request: NextRequest) {
     : user.instruments[0];
 
   if (!targetInstrument) {
-    // No instruments selected, return tracks without difficulty
     return NextResponse.json(
       tracks.map((track) => ({
         spotifyTrackId: track.id,
@@ -77,9 +78,10 @@ export async function GET(request: NextRequest) {
         albumImageUrl: track.album.images[0]?.url || null,
         spotifyUrl: track.external_urls.spotify,
         difficulty: null,
-        tabUrl: null,
-        tabProvider: null,
+        ultimateGuitarUrl: getUltimateGuitarUrl(track.artists[0]?.name || "", track.name, "guitar"),
+        songsterrUrl: getSongsterrUrl(track.artists[0]?.name || "", track.name),
         source: null,
+        isFavourited: favouriteTrackIds.has(track.id),
       }))
     );
   }
@@ -111,9 +113,10 @@ export async function GET(request: NextRequest) {
         albumImageUrl: track.album.images[0]?.url || null,
         spotifyUrl: track.external_urls.spotify,
         difficulty: diff.difficulty,
-        tabUrl: diff.tabUrl,
-        tabProvider: diff.tabProvider,
+        ultimateGuitarUrl: diff.ultimateGuitarUrl,
+        songsterrUrl: diff.songsterrUrl,
         source: diff.source,
+        isFavourited: favouriteTrackIds.has(track.id),
       });
     }
   }
