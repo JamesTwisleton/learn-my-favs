@@ -2,6 +2,10 @@
 
 Discover which of your most-played Spotify songs are easy to play on your favourite instrument. Get tabs, sort by difficulty, and jam with friends.
 
+## How It Works
+
+See [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md) for a detailed explanation of the app's architecture, how difficulty scoring works, the Spotify integration, tab link generation, and data flow.
+
 ## Local Development
 
 ### Prerequisites
