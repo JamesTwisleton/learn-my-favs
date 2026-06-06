@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { LoginButton } from "@/components/auth/LoginButton";
 
 export default function Home() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
 
   useEffect(() => {
@@ -14,14 +14,6 @@ export default function Home() {
       router.replace("/dashboard");
     }
   }, [session, router]);
-
-  if (status === "loading") {
-    return (
-      <div className="flex min-h-[80vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-spotify-green border-t-transparent" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-[80vh] flex-col items-center justify-center px-4">
